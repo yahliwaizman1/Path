@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Path - פלטפורמת זיהוי מוקדם של סיכונים</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- דף הבית -->
+    <div id="homePage" class="page active">
+        <div class="hero">
+            <img src="pathLogo.jpeg" alt="Path Logo" class="logo-image">
+            <h1 class="logo-text">Path</h1>
+            <p class="tagline">פלטפורמה חינוכית עם בינה מלאכותית לזיהוי מוקדם של סיכונים</p>
+
+            <div class="home-content">
+                <div class="info-card">
+                    <h2>מהו Path?</h2>
+                    <p>Path היא פלטפורמה חינוכית חדשנית המשתמשת בבינה מלאכותית כדי לזהות תלמידים בסיכון <strong>לפני</strong> שהם נכשלים.</p>
+
+                    <div class="features">
+                        <div class="feature">
+                            <span class="icon">🎯</span>
+                            <div>
+                                <h3>זיהוי מוקדם</h3>
+                                <p>איתור תלמידים מתקשים שבועות לפני המשבר</p>
+                            </div>
+                        </div>
+                        <div class="feature">
+                            <span class="icon">🤖</span>
+                            <div>
+                                <h3>תובנות מבוססות AI</h3>
+                                <p>המלצות מונחות נתונים עבור כל תלמיד</p>
+                            </div>
+                        </div>
+                        <div class="feature">
+                            <span class="icon">💡</span>
+                            <div>
+                                <h3>תוכניות פעולה ברורות</h3>
+                                <p>צעדים הבאים ברורים עבור מורים ויועצים</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="startAnalysisBtn" class="btn-primary">
+                    🚀 התחל ניתוח AI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- דף הדשבורד -->
+    <div id="dashboardPage" class="page">
+        <header>
+            <div class="header-content">
+                <div class="header-logo">
+                    <img src="pathLogo.jpeg" alt="Path Logo" class="logo-image-small">
+                    <h1 class="logo-text-small">Path</h1>
+                </div>
+                <button id="homeBtn" class="btn-secondary">🏠 דף הבית</button>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <div class="dashboard-header">
+                <h2>לוח בקרת סיכונים של תלמידים</h2>
+                <p class="subtitle">לחץ על כל תלמיד לניתוח מפורט</p>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card green">
+                    <div class="stat-number" id="greenCount">0</div>
+                    <div class="stat-label">🟢 מצב טוב</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-number" id="yellowCount">0</div>
+                    <div class="stat-label">🟡 ירידה מוקדמת</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-number" id="redCount">0</div>
+                    <div class="stat-label">🔴 סיכון גבוה</div>
+                </div>
+            </div>
+
+            <div id="loadingIndicator" class="loading">
+                <div class="spinner"></div>
+                <p>מנתח נתוני תלמידים...</p>
+            </div>
+
+            <table id="studentTable" class="student-table">
+                <thead>
+                    <tr>
+                        <th>תלמיד</th>
+                        <th>ציון</th>
+                        <th>היעדרויות</th>
+                        <th>איחורים</th>
+                        <th>הפרעות</th>
+                        <th>סיכון</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                </tbody>
+            </table>
+        </main>
+
+        <!-- פאנל פרטי תלמיד -->
+        <div id="detailPanel" class="detail-panel">
+            <div class="panel-header">
+                <h2 id="detailName"></h2>
+                <button id="closePanelBtn" class="btn-close">✕</button>
+            </div>
+            <div class="panel-content">
+                <!-- סקירת מגמות -->
+                <div class="trend-overview">
+                    <h3>📈 ניתוח מגמות</h3>
+                    <div class="trend-summary" id="detailTrendSummary">
+                        <div class="trend-item">
+                            <span class="trend-label">מגמה כללית:</span>
+                            <span class="trend-value" id="detailOverallTrend"></span>
+                        </div>
+                        <div class="trend-item">
+                            <span class="trend-label">מגמת ציונים:</span>
+                            <span class="trend-value" id="detailGradeTrend"></span>
+                        </div>
+                        <div class="trend-item">
+                            <span class="trend-label">מגמת היעדרויות:</span>
+                            <span class="trend-value" id="detailAbsenceTrend"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ביצועים רבעוניים -->
+                <div class="quarterly-data">
+                    <h3>📅 ביצועים רבעוניים</h3>
+                    <div class="quarters-grid">
+                        <div class="quarter-card">
+                            <div class="quarter-header">רבעון 1</div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">ציון:</span>
+                                <span class="qm-value" id="q1Grade"></span>
+                            </div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">היעדרויות:</span>
+                                <span class="qm-value" id="q1Absences"></span>
+                            </div>
+                        </div>
+                        <div class="quarter-card">
+                            <div class="quarter-header">רבעון 2</div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">ציון:</span>
+                                <span class="qm-value" id="q2Grade"></span>
+                            </div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">היעדרויות:</span>
+                                <span class="qm-value" id="q2Absences"></span>
+                            </div>
+                        </div>
+                        <div class="quarter-card">
+                            <div class="quarter-header">רבעון 3</div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">ציון:</span>
+                                <span class="qm-value" id="q3Grade"></span>
+                            </div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">היעדרויות:</span>
+                                <span class="qm-value" id="q3Absences"></span>
+                            </div>
+                        </div>
+                        <div class="quarter-card">
+                            <div class="quarter-header">רבעון 4 (נוכחי)</div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">ציון:</span>
+                                <span class="qm-value" id="q4Grade"></span>
+                            </div>
+                            <div class="quarter-metric">
+                                <span class="qm-label">היעדרויות:</span>
+                                <span class="qm-value" id="q4Absences"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- סיכום מצב נוכחי -->
+                <div class="metrics">
+                    <h3>📊 מצב נוכחי (רבעון 4)</h3>
+                    <div class="metric-grid">
+                        <div class="metric">
+                            <span class="metric-label">ציון נוכחי</span>
+                            <span class="metric-value" id="detailGrade"></span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">היעדרויות נוכחיות</span>
+                            <span class="metric-value" id="detailAbsences"></span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">איחורים</span>
+                            <span class="metric-value" id="detailLate"></span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">הפרעות</span>
+                            <span class="metric-value" id="detailDisruptions"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="risk-analysis">
+                    <h3>🎯 ניתוח סיכונים</h3>
+                    <div class="risk-score">
+                        <span>ציון סיכון:</span>
+                        <span id="detailRiskScore" class="score-badge"></span>
+                    </div>
+                    <p id="detailExplanation" class="explanation"></p>
+                </div>
+
+                <div class="recommendations">
+                    <h3>🤖 המלצות AI</h3>
+                    <ul id="detailRecommendations"></ul>
+                </div>
+
+                <div class="notes">
+                    <h3>📝 הערות מורה</h3>
+                    <p id="detailNotes"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
