@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Path - פלטפורמת זיהוי מוקדם של סיכונים</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- דף הבית -->
@@ -131,6 +132,19 @@
                     </div>
                 </div>
 
+                <!-- גרפים של התקדמות התלמיד -->
+                <div class="charts-section">
+                    <h3>📊 גרפים - התקדמות לאורך זמן</h3>
+                    <div class="charts-container">
+                        <div class="chart-wrapper">
+                            <canvas id="gradesChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="absencesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ביצועים רבעוניים -->
                 <div class="quarterly-data">
                     <h3>📅 ביצועים רבעוניים</h3>
@@ -222,6 +236,30 @@
                 <div class="notes">
                     <h3>📝 הערות מורה</h3>
                     <p id="detailNotes"></p>
+                </div>
+
+                <!-- הערת מורה + ניתוח AI -->
+                <div class="teacher-comment-section">
+                    <h3>👨‍🏫 הערת המורה + ניתוח AI</h3>
+
+                    <!-- AI Analysis of Teacher Comment -->
+                    <div class="ai-insights" id="aiInsights" style="display: none;">
+                        <div class="insights-header">
+                            <span class="ai-badge">🤖 AI</span>
+                            <strong>ניתוח אוטומטי של הערת המורה:</strong>
+                        </div>
+                        <div class="insights-content">
+                            <p id="aiSummary"></p>
+                            <div id="aiConcerns" class="concerns-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="teacher-comment-input">
+                        <label for="teacherCommentArea">הערת המורה (המערכת תנתח אוטומטית):</label>
+                        <textarea id="teacherCommentArea" rows="4" placeholder="הזן הערה על התלמיד - המערכת תנתח ותתאים את המלצות הסיכון..."></textarea>
+                        <button id="saveCommentBtn" class="btn-primary">💾 שמור הערה</button>
+                        <div id="saveStatus" class="save-status"></div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,4 +1,0 @@
-wwwroot\index.html
-wwwroot\pathLogo.jpeg
-wwwroot\script.js
-wwwroot\style.css

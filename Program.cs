@@ -1,17 +1,101 @@
 using System.Globalization;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure to use port 5000 (HTTP only) to avoid port conflicts
+builder.WebHost.UseUrls("http://localhost:5000");
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
+app.UseCors();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// API endpoint to analyze students
+// API endpoint to analyze all students
 app.MapGet("/api/analyze", () =>
 {
     var students = LoadStudents();
     var analyses = students.Select(AnalyzeStudent).ToList();
-    return Results.Json(analyses);
+    return Results.Json(analyses, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true
+    });
+});
+
+// API endpoint to get single student analysis
+app.MapGet("/api/student/{id}", (int id) =>
+{
+    var students = LoadStudents();
+    var student = students.FirstOrDefault(s => s.Id == id);
+
+    if (student == null)
+        return Results.NotFound(new { error = "Student not found" });
+
+    var analysis = AnalyzeStudent(student);
+    return Results.Json(analysis, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true
+    });
+});
+
+// API endpoint to update teacher comment
+app.MapPost("/api/student/{id}/comment", async (int id, HttpRequest request) =>
+{
+    using var reader = new StreamReader(request.Body);
+    var body = await reader.ReadToEndAsync();
+    var data = JsonSerializer.Deserialize<Dictionary<string, string>>(body);
+
+    if (data == null || !data.ContainsKey("teacherComment"))
+        return Results.BadRequest(new { error = "teacherComment field required" });
+
+    var newComment = data["teacherComment"];
+
+    // Update CSV file
+    var lines = File.ReadAllLines("students.csv").ToList();
+    bool updated = false;
+
+    for (int i = 1; i < lines.Count; i++) // Skip header
+    {
+        var parts = lines[i].Split(',');
+        if (parts.Length >= 14 && int.Parse(parts[0]) == id)
+        {
+            // Update the TeacherComment field (index 13)
+            parts[13] = newComment;
+            lines[i] = string.Join(',', parts);
+            updated = true;
+            break;
+        }
+    }
+
+    if (!updated)
+        return Results.NotFound(new { error = "Student not found" });
+
+    File.WriteAllLines("students.csv", lines);
+
+    // Return updated analysis
+    var students = LoadStudents();
+    var student = students.FirstOrDefault(s => s.Id == id);
+    var analysis = AnalyzeStudent(student!);
+
+    return Results.Json(new {
+        success = true,
+        message = "Teacher comment updated successfully",
+        analysis
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    });
 });
 
 app.Run();
@@ -25,7 +109,7 @@ static List<Student> LoadStudents()
     for (int i = 1; i < lines.Length; i++) // Skip header
     {
         var parts = lines[i].Split(',');
-        if (parts.Length >= 13)
+        if (parts.Length >= 14)
         {
             students.Add(new Student(
                 Id: int.Parse(parts[0]),
@@ -40,7 +124,8 @@ static List<Student> LoadStudents()
                 Q4_Absences: int.Parse(parts[9]),
                 LateArrivals: int.Parse(parts[10]),
                 Disruptions: int.Parse(parts[11]),
-                Notes: parts[12]
+                Notes: parts[12],
+                TeacherComment: parts.Length > 13 ? parts[13] : ""
             ));
         }
     }
@@ -57,6 +142,9 @@ static StudentAnalysis AnalyzeStudent(Student student)
 
     // TREND ANALYSIS: Detect patterns over time
     var trendAnalysis = CalculateTrendAnalysis(student);
+
+    // TEACHER COMMENT ANALYSIS: Extract insights from teacher observations
+    var teacherInsights = AnalyzeTeacherComment(student.TeacherComment);
 
     // Base risk score (0-100)
     int riskScore = 0;
@@ -148,8 +236,22 @@ static StudentAnalysis AnalyzeStudent(Student student)
         recommendations.Add("🧠 Refer to school counselor for behavioral support");
     }
 
+    // === TEACHER COMMENT ANALYSIS ===
+    // AI reads teacher observations and adjusts risk assessment accordingly
+    if (teacherInsights.RiskAdjustment != 0)
+    {
+        riskScore += teacherInsights.RiskAdjustment;
+        factors.Add($"Teacher observation: {teacherInsights.Summary}");
+    }
+
+    // Add teacher-informed recommendations
+    if (teacherInsights.Recommendations.Any())
+    {
+        recommendations.AddRange(teacherInsights.Recommendations);
+    }
+
     // === RISK LEVEL CLASSIFICATION ===
-    // Risk levels now consider BOTH current state AND trends
+    // Risk levels now consider BOTH current state AND trends AND teacher observations
     string riskLevel;
     string explanation;
 
@@ -202,7 +304,8 @@ static StudentAnalysis AnalyzeStudent(Student student)
         RiskScore: riskScore,
         RiskExplanation: explanation,
         Recommendations: recommendations,
-        TrendAnalysis: trendAnalysis
+        TrendAnalysis: trendAnalysis,
+        TeacherInsights: teacherInsights
     );
 }
 
@@ -309,6 +412,127 @@ static TrendAnalysis CalculateTrendAnalysis(Student student)
     );
 }
 
+// TEACHER COMMENT ANALYSIS ENGINE
+// This is where AI "reads" teacher observations and extracts actionable insights
+static TeacherInsights AnalyzeTeacherComment(string comment)
+{
+    if (string.IsNullOrWhiteSpace(comment))
+    {
+        return new TeacherInsights(
+            Summary: "No teacher observation recorded",
+            RiskAdjustment: 0,
+            Recommendations: new List<string>(),
+            DetectedConcerns: new List<string>()
+        );
+    }
+
+    var lowerComment = comment.ToLower();
+    var concerns = new List<string>();
+    var recommendations = new List<string>();
+    int riskAdjustment = 0;
+
+    // === AI KEYWORD DETECTION: Identify concerning patterns ===
+
+    // Psychological/emotional concerns
+    if (ContainsAny(lowerComment, new[] { "מוטרד", "לחץ", "דכאון", "חרדה", "stress", "worried", "anxious" }))
+    {
+        concerns.Add("Emotional/psychological distress");
+        riskAdjustment += 10;
+        recommendations.Add("🧠 Urgent: Refer to school counselor for emotional support");
+    }
+
+    // Family problems
+    if (ContainsAny(lowerComment, new[] { "משפחה", "הורים", "בית", "family", "home", "parents" }))
+    {
+        concerns.Add("Family/home situation");
+        riskAdjustment += 8;
+        recommendations.Add("👨‍👩‍👧 Schedule family meeting to understand home context");
+    }
+
+    // Concentration/focus issues
+    if (ContainsAny(lowerComment, new[] { "ריכוז", "ממוקד", "קשב", "אבחון", "concentration", "focus", "attention", "adhd" }))
+    {
+        concerns.Add("Concentration difficulties");
+        riskAdjustment += 5;
+        recommendations.Add("🔍 Consider professional assessment for learning challenges");
+    }
+
+    // Motivation issues
+    if (ContainsAny(lowerComment, new[] { "מוטיבציה", "חסר", "motivation", "unmotivated", "disengaged" }))
+    {
+        concerns.Add("Lack of motivation");
+        riskAdjustment += 5;
+        recommendations.Add("💬 Personal conversation needed to understand underlying causes");
+    }
+
+    // Health/medical issues
+    if (ContainsAny(lowerComment, new[] { "חולה", "מחלות", "עייף", "sick", "illness", "tired", "health" }))
+    {
+        concerns.Add("Health-related absences");
+        riskAdjustment += 3;
+        recommendations.Add("🏥 Verify medical situation with parents - may need accommodations");
+    }
+
+    // Work/employment concerns
+    if (ContainsAny(lowerComment, new[] { "עבודה", "עובד", "work", "job", "employment" }))
+    {
+        concerns.Add("Outside employment affecting studies");
+        riskAdjustment += 7;
+        recommendations.Add("⚖️ Discuss work-school balance with student and family");
+    }
+
+    // Parent cooperation issues
+    if (ContainsAny(lowerComment, new[] { "לא משתפים", "לא מגיבים", "not cooperating", "unresponsive" }))
+    {
+        concerns.Add("Lack of parental cooperation");
+        riskAdjustment += 10;
+        recommendations.Add("⚠️ Escalate to school administration - parental involvement critical");
+    }
+
+    // Critical/severe situation
+    if (ContainsAny(lowerComment, new[] { "חמור", "קריטי", "דחוף", "רשויות", "critical", "severe", "urgent", "authorities" }))
+    {
+        concerns.Add("Critical situation requiring immediate action");
+        riskAdjustment += 15;
+        recommendations.Add("🚨 URGENT: Immediate intervention required - involve school administration");
+    }
+
+    // === POSITIVE INDICATORS: Reduce risk if teacher sees improvement ===
+
+    if (ContainsAny(lowerComment, new[] { "השתפר", "טוב", "מצוין", "מוצלח", "improved", "excellent", "great", "successful" }))
+    {
+        concerns.Add("Positive teacher feedback - lower concern");
+        riskAdjustment -= 5;
+        recommendations.Add("⭐ Continue current support - positive teacher observation");
+    }
+
+    // Learning difficulties but stable
+    if (ContainsAny(lowerComment, new[] { "לומד לבד", "מצליח למרות", "manages despite", "self-study" }))
+    {
+        concerns.Add("Resilient student - manages independently");
+        riskAdjustment -= 3;
+        recommendations.Add("💪 Student shows resilience - consider gifted/independent learning track");
+    }
+
+    // Summary generation
+    string summary = concerns.Any()
+        ? string.Join(", ", concerns.Take(2))
+        : "General teacher observation";
+
+    return new TeacherInsights(
+        Summary: summary,
+        RiskAdjustment: Math.Clamp(riskAdjustment, -10, 20), // Cap adjustment to reasonable range
+        Recommendations: recommendations,
+        DetectedConcerns: concerns
+    );
+}
+
+// Helper function for keyword matching
+static bool ContainsAny(string text, string[] keywords)
+{
+    return keywords.Any(keyword => text.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+}
+
 // === DATA MODELS ===
 
 // Student model with quarterly data
@@ -325,7 +549,8 @@ record Student(
     int Q4_Absences,
     int LateArrivals,
     int Disruptions,
-    string Notes
+    string Notes,
+    string TeacherComment
 );
 
 // Trend analysis result
@@ -341,12 +566,21 @@ record TrendAnalysis(
     List<int> QuarterlyAbsences
 );
 
-// Analysis result with trend data
+// Teacher comment insights (AI analysis of teacher observations)
+record TeacherInsights(
+    string Summary,                  // Brief summary of teacher's concern
+    int RiskAdjustment,              // Risk score adjustment (-10 to +20)
+    List<string> Recommendations,    // Recommendations based on teacher input
+    List<string> DetectedConcerns    // Specific concerns identified by AI
+);
+
+// Analysis result with trend data and teacher insights
 record StudentAnalysis(
     Student Student,
     string RiskLevel,
     int RiskScore,
     string RiskExplanation,
     List<string> Recommendations,
-    TrendAnalysis TrendAnalysis
+    TrendAnalysis TrendAnalysis,
+    TeacherInsights TeacherInsights
 );

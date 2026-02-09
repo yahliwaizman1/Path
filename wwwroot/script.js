@@ -1,29 +1,61 @@
 let studentsData = [];
+let currentStudentId = null;
+let gradesChart = null;
+let absencesChart = null;
 
-// Page navigation
-const homePage = document.getElementById('homePage');
-const dashboardPage = document.getElementById('dashboardPage');
-const startAnalysisBtn = document.getElementById('startAnalysisBtn');
-const homeBtn = document.getElementById('homeBtn');
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
 
-startAnalysisBtn.addEventListener('click', () => {
-    showDashboard();
-    loadStudents();
+    // Page navigation
+    const homePage = document.getElementById('homePage');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const startAnalysisBtn = document.getElementById('startAnalysisBtn');
+    const homeBtn = document.getElementById('homeBtn');
+
+    // Debug: Check if elements exist
+    console.log('Elements found:', {
+        homePage: !!homePage,
+        dashboardPage: !!dashboardPage,
+        startAnalysisBtn: !!startAnalysisBtn,
+        homeBtn: !!homeBtn
+    });
+
+    if (startAnalysisBtn) {
+        startAnalysisBtn.addEventListener('click', () => {
+            console.log('Start Analysis button clicked!');
+            showDashboard();
+            loadStudents();
+        });
+    } else {
+        console.error('Start Analysis button not found!');
+    }
+
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => {
+            console.log('Home button clicked!');
+            showHome();
+        });
+    }
+
+    function showHome() {
+        console.log('Showing home page');
+        homePage.classList.add('active');
+        dashboardPage.classList.remove('active');
+    }
+
+    function showDashboard() {
+        console.log('Showing dashboard');
+        homePage.classList.remove('active');
+        dashboardPage.classList.add('active');
+    }
+
+    // Initialize save comment button
+    const saveCommentBtn = document.getElementById('saveCommentBtn');
+    if (saveCommentBtn) {
+        saveCommentBtn.addEventListener('click', saveTeacherComment);
+    }
 });
-
-homeBtn.addEventListener('click', () => {
-    showHome();
-});
-
-function showHome() {
-    homePage.classList.add('active');
-    dashboardPage.classList.remove('active');
-}
-
-function showDashboard() {
-    homePage.classList.remove('active');
-    dashboardPage.classList.add('active');
-}
 
 // Load and display students
 async function loadStudents() {
@@ -96,6 +128,9 @@ function showStudentDetail(analysis) {
     const student = analysis.student;
     const trend = analysis.trendAnalysis;
 
+    // Store current student ID for comment saving
+    currentStudentId = student.id;
+
     // Student name
     document.getElementById('detailName').textContent = student.name;
 
@@ -151,7 +186,226 @@ function showStudentDetail(analysis) {
     // === NOTES ===
     document.getElementById('detailNotes').textContent = student.notes || 'No notes available.';
 
+    // === CHARTS ===
+    renderCharts(trend);
+
+    // === TEACHER COMMENT & AI INSIGHTS ===
+    displayTeacherComment(student, analysis.teacherInsights);
+
     detailPanel.classList.add('open');
+}
+
+// Render charts for student progress
+function renderCharts(trendAnalysis) {
+    const gradesCtx = document.getElementById('gradesChart').getContext('2d');
+    const absencesCtx = document.getElementById('absencesChart').getContext('2d');
+
+    // Destroy previous charts if they exist
+    if (gradesChart) gradesChart.destroy();
+    if (absencesChart) absencesChart.destroy();
+
+    // Grades Chart
+    gradesChart = new Chart(gradesCtx, {
+        type: 'line',
+        data: {
+            labels: ['רבעון 1', 'רבעון 2', 'רבעון 3', 'רבעון 4'],
+            datasets: [{
+                label: 'ממוצע ציונים',
+                data: trendAnalysis.quarterlyGrades,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'מגמת ציונים',
+                    font: { size: 16, weight: 'bold' },
+                    color: '#333'
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 40,
+                    max: 100,
+                    ticks: {
+                        font: { size: 12 }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { size: 12 }
+                    }
+                }
+            }
+        }
+    });
+
+    // Absences Chart
+    absencesChart = new Chart(absencesCtx, {
+        type: 'bar',
+        data: {
+            labels: ['רבעון 1', 'רבעון 2', 'רבעון 3', 'רבעון 4'],
+            datasets: [{
+                label: 'היעדרויות',
+                data: trendAnalysis.quarterlyAbsences,
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.7)',
+                    'rgba(102, 126, 234, 0.7)',
+                    'rgba(102, 126, 234, 0.7)',
+                    'rgba(239, 68, 68, 0.7)'
+                ],
+                borderColor: [
+                    '#667eea',
+                    '#667eea',
+                    '#667eea',
+                    '#ef4444'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'מגמת היעדרויות',
+                    font: { size: 16, weight: 'bold' },
+                    color: '#333'
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 2,
+                        font: { size: 12 }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { size: 12 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Display teacher comment and AI insights
+function displayTeacherComment(student, teacherInsights) {
+    const teacherCommentArea = document.getElementById('teacherCommentArea');
+    const aiInsights = document.getElementById('aiInsights');
+    const aiSummary = document.getElementById('aiSummary');
+    const aiConcerns = document.getElementById('aiConcerns');
+
+    // Set current teacher comment
+    teacherCommentArea.value = student.teacherComment || '';
+
+    // Display AI insights if available
+    if (teacherInsights && teacherInsights.detectedConcerns && teacherInsights.detectedConcerns.length > 0) {
+        aiInsights.style.display = 'block';
+        aiSummary.textContent = `סיכום: ${teacherInsights.summary}`;
+
+        // Display concerns
+        aiConcerns.innerHTML = '';
+        teacherInsights.detectedConcerns.forEach(concern => {
+            const concernDiv = document.createElement('div');
+            concernDiv.className = 'concern-item';
+            concernDiv.textContent = `⚠️ ${concern}`;
+            aiConcerns.appendChild(concernDiv);
+        });
+    } else {
+        aiInsights.style.display = 'none';
+    }
+}
+
+// Save teacher comment function
+async function saveTeacherComment() {
+    const comment = document.getElementById('teacherCommentArea').value;
+    const saveStatus = document.getElementById('saveStatus');
+    const saveBtn = document.getElementById('saveCommentBtn');
+
+    if (!currentStudentId) {
+        console.error('No student selected');
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '💾 שומר...';
+    saveStatus.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/student/${currentStudentId}/comment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                teacherComment: comment
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            saveStatus.className = 'save-status success';
+            saveStatus.textContent = '✅ הערת המורה נשמרה בהצלחה! המערכת עדכנה את ניתוח הסיכון.';
+
+            // Reload student data to reflect changes
+            await loadStudents();
+
+            // Find updated analysis
+            const updatedAnalysis = studentsData.find(s => s.student.id === currentStudentId);
+            if (updatedAnalysis) {
+                // Update teacher insights display
+                displayTeacherComment(updatedAnalysis.student, updatedAnalysis.teacherInsights);
+
+                // Update recommendations and explanation
+                const recList = document.getElementById('detailRecommendations');
+                recList.innerHTML = '';
+                updatedAnalysis.recommendations.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.textContent = rec;
+                    recList.appendChild(li);
+                });
+
+                document.getElementById('detailExplanation').textContent = updatedAnalysis.riskExplanation;
+
+                const scoreEl = document.getElementById('detailRiskScore');
+                scoreEl.textContent = updatedAnalysis.riskScore;
+                scoreEl.className = `score-badge ${updatedAnalysis.riskLevel}`;
+            }
+        } else {
+            throw new Error(result.error || 'Failed to save comment');
+        }
+    } catch (error) {
+        console.error('Error saving comment:', error);
+        saveStatus.className = 'save-status error';
+        saveStatus.textContent = '❌ שגיאה בשמירת ההערה. אנא נסה שוב.';
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 שמור הערה';
+    }
 }
 
 // Helper function to display trend with icons

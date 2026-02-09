@@ -38,6 +38,7 @@ C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.AssemblyInfoInputs.cac
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.AssemblyInfo.cs
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.csproj.CoreCompileInputs.cache
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.sourcelink.json
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\rjimswa.dswa.cache.json
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\rjsmrazor.dswa.cache.json
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\rjsmcshtml.dswa.cache.json
@@ -46,7 +47,6 @@ C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\staticwebassets.build.json
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\staticwebassets.build.json.cache
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\staticwebassets.development.json
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\staticwebassets.build.endpoints.json
-C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\staticwebassets.upToDateCheck.txt
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.dll
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\refint\Path.dll
 C:\Users\yahli\Desktop\pathgit\Path\obj\Debug\net7.0\Path.pdb
