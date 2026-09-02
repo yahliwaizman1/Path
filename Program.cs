@@ -4,7 +4,8 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure to use port 5000 (HTTP only) to avoid port conflicts
-builder.WebHost.UseUrls("http://localhost:5000");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://*:{port}");
 
 builder.Services.AddCors(options =>
 {
